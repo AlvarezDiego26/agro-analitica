@@ -9,12 +9,12 @@ SET threads = 4;
 
 CREATE OR REPLACE SECRET minio_secret (
     TYPE S3,
-    KEY_ID 'oX3JYQssZtFM5rGC0xhK',
-    SECRET 'xYsQ0Ty3CIAVmqfn7Uaob123uKN13gxQUviY5mSl',
-    ENDPOINT '38.210.246.165:30090',
+    KEY_ID '{minio_access_key}',
+    SECRET '{minio_secret_key}',
+    ENDPOINT '{duckdb_minio_endpoint}',
     URL_STYLE 'path',
     USE_SSL false,
-    REGION 'us-east-1'
+    REGION '{minio_region}'
 );
 
 DROP TABLE IF EXISTS sisap_precios_recent_cache;
