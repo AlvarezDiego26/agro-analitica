@@ -5,7 +5,7 @@ INSTALL httpfs;
 LOAD httpfs;
 
 SET preserve_insertion_order = false;
-SET threads = 4;
+SET threads = 1;
 
 CREATE OR REPLACE SECRET minio_secret (
     TYPE S3,
