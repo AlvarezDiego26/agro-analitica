@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+coverage
+.env
+.env.local
+.env.*.local
+.vscode/
+*.tsbuildinfo
+ui/build_log*.txt
+ui/css_output*.txt
+ui/files*.txt
+db/duckdb/runtime/data/*.duckdb
+db/duckdb/runtime/data/*.wal
