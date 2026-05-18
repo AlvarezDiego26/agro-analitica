@@ -127,6 +127,51 @@ const servingExports: Array<{ tableName: string; query: string }> = [
   }
 ];
 
+const DUCKDB_DATE_EPOCH_MS = Date.UTC(1970, 0, 1);
+
+function isDuckDbDate(value: unknown): value is { days: number } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "days" in value &&
+    typeof (value as { days?: unknown }).days === "number"
+  );
+}
+
+function isDuckDbTimestamp(value: unknown): value is { micros: bigint | number | string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "micros" in value &&
+    ["bigint", "number", "string"].includes(typeof (value as { micros?: unknown }).micros)
+  );
+}
+
+function normalizeDuckDbValue(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (isDuckDbDate(value)) {
+    return new Date(DUCKDB_DATE_EPOCH_MS + value.days * 86_400_000).toISOString().slice(0, 10);
+  }
+
+  if (isDuckDbTimestamp(value)) {
+    const micros = BigInt(value.micros);
+    return new Date(Number(micros / 1_000n)).toISOString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeDuckDbValue(item));
+  }
+
+  return value;
+}
+
 async function main(): Promise<void> {
   const instance = await DuckDBInstance.create(snapshotPath, {
     access_mode: "READ_ONLY",
@@ -159,7 +204,7 @@ async function main(): Promise<void> {
         const insertSql = `INSERT INTO ${postgresSchema}.${exportDefinition.tableName} (${columns}) VALUES ${placeholders}`;
 
         for (const row of rows) {
-          await client.query(insertSql, row as unknown[]);
+          await client.query(insertSql, (row as unknown[]).map((value) => normalizeDuckDbValue(value)));
         }
       }
 
