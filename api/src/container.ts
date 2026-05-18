@@ -11,6 +11,10 @@ import { DuckDbQueryExecutor } from './infrastructure/persistence/duckdb/clients
 import { DuckDbDashboardRepository } from './infrastructure/persistence/duckdb/repositories/duckdb-dashboard.repository.js';
 import { DuckDbPlannerRepository } from './infrastructure/persistence/duckdb/repositories/duckdb-planner.repository.js';
 import { DuckDbSunatExportsRepository } from './infrastructure/persistence/duckdb/repositories/duckdb-sunat-exports.repository.js';
+import { PostgresQueryExecutor } from './infrastructure/persistence/postgres/clients/postgres-query-executor.js';
+import { PostgresDashboardRepository } from './infrastructure/persistence/postgres/repositories/postgres-dashboard.repository.js';
+import { PostgresPlannerRepository } from './infrastructure/persistence/postgres/repositories/postgres-planner.repository.js';
+import { PostgresSunatExportsRepository } from './infrastructure/persistence/postgres/repositories/postgres-sunat-exports.repository.js';
 import { DashboardController } from './interfaces/http/controllers/dashboard.controller.js';
 import { HealthController } from './interfaces/http/controllers/health.controller.js';
 import { PlannerController } from './interfaces/http/controllers/planner.controller.js';
@@ -46,6 +50,18 @@ function createRepositories(): {
   plannerRepository: PlannerRepository;
   sunatExportsRepository: SunatExportsRepository;
 } {
+  const env = loadEnv();
+
+  if (env.dataSource === 'postgres') {
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+
+    return {
+      dashboardRepository: new PostgresDashboardRepository(postgresQueryExecutor),
+      plannerRepository: new PostgresPlannerRepository(postgresQueryExecutor),
+      sunatExportsRepository: new PostgresSunatExportsRepository(postgresQueryExecutor)
+    };
+  }
+
   const duckDbQueryExecutor = new DuckDbQueryExecutor();
 
   return {
