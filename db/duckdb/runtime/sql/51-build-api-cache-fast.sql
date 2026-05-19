@@ -52,6 +52,79 @@ CROSS JOIN latest_volume_date l
 WHERE v.volumen_ton IS NOT NULL
   AND v.fecha >= l.latest_date - INTERVAL 30 DAY;
 
+DROP TABLE IF EXISTS sisap_product_trend_cache;
+CREATE TABLE sisap_product_trend_cache AS
+WITH volume_by_product_date AS (
+    SELECT
+        producto_key,
+        fecha,
+        ROUND(SUM(volumen_ton), 2) AS totalVolumeTon
+    FROM sisap_volumen_recent_cache
+    GROUP BY producto_key, fecha
+)
+SELECT
+    p.producto_key AS productoKey,
+    any_value(p.producto_nombre) AS productoNombre,
+    CAST(p.fecha AS VARCHAR) AS fecha,
+    ROUND(AVG(p.precio_prom), 2) AS averagePrice,
+    ROUND(MIN(p.precio_prom), 2) AS minPrice,
+    ROUND(MAX(p.precio_prom), 2) AS maxPrice,
+    COUNT(*) AS recordCount,
+    COALESCE(v.totalVolumeTon, 0) AS totalVolumeTon
+FROM sisap_precios_recent_cache p
+LEFT JOIN volume_by_product_date v
+  ON v.producto_key = p.producto_key
+ AND v.fecha = p.fecha
+GROUP BY p.producto_key, p.fecha, v.totalVolumeTon;
+
+DROP TABLE IF EXISTS midagri_exportaciones_core_cache;
+CREATE TABLE midagri_exportaciones_core_cache AS
+SELECT
+    fecha_particion AS fecha,
+    LOWER(subpartida_nacional) AS producto_key,
+    subpartida_nacional,
+    descripcion AS producto_nombre,
+    peso_neto_t,
+    valor_fob_miles_usd * 1000.0 AS total_usd,
+    COALESCE(
+        precio_fob_usd_t,
+        CASE
+            WHEN peso_neto_t IS NULL OR peso_neto_t = 0 OR valor_fob_miles_usd IS NULL THEN NULL
+            ELSE (valor_fob_miles_usd * 1000.0) / peso_neto_t
+        END
+    ) AS average_usd_per_t
+FROM delta_scan('s3://agro-productos/Landing/midagri_comercio_exterior/comercio_exportacion_agrario/')
+WHERE fecha_particion IS NOT NULL
+  AND frecuencia = 'mensual'
+  AND nivel_agregacion = 'subpartida'
+  AND COALESCE(es_total, false) = false
+  AND subpartida_nacional IS NOT NULL
+  AND descripcion IS NOT NULL;
+
+DROP TABLE IF EXISTS midagri_importaciones_core_cache;
+CREATE TABLE midagri_importaciones_core_cache AS
+SELECT
+    fecha_particion AS fecha,
+    LOWER(subpartida_nacional) AS producto_key,
+    subpartida_nacional,
+    descripcion AS producto_nombre,
+    peso_neto_t,
+    valor_cif_miles_usd * 1000.0 AS total_usd,
+    COALESCE(
+        precio_cif_usd_t,
+        CASE
+            WHEN peso_neto_t IS NULL OR peso_neto_t = 0 OR valor_cif_miles_usd IS NULL THEN NULL
+            ELSE (valor_cif_miles_usd * 1000.0) / peso_neto_t
+        END
+    ) AS average_usd_per_t
+FROM delta_scan('s3://agro-productos/Landing/midagri_comercio_exterior/comercio_importacion_agrario/')
+WHERE fecha_particion IS NOT NULL
+  AND frecuencia = 'mensual'
+  AND nivel_agregacion = 'subpartida'
+  AND COALESCE(es_total, false) = false
+  AND subpartida_nacional IS NOT NULL
+  AND descripcion IS NOT NULL;
+
 DROP TABLE IF EXISTS sunat_exportaciones_core_cache;
 CREATE TABLE sunat_exportaciones_core_cache AS
 SELECT
@@ -178,6 +251,82 @@ SELECT
     ROUND(AVG(precio_fob_usd_por_kg), 4) AS averageUsdPerKg,
     COUNT(*) AS operationCount
 FROM sunat_exportaciones_core_cache
+GROUP BY producto_key, fecha;
+
+DROP TABLE IF EXISTS midagri_exportaciones_overview_cache;
+CREATE TABLE midagri_exportaciones_overview_cache AS
+SELECT
+    CAST(MAX(fecha) AS VARCHAR) AS latestDate,
+    COUNT(*) AS totalRecords,
+    COUNT(DISTINCT producto_key) AS productCount,
+    ROUND(SUM(total_usd), 2) AS totalUsd,
+    ROUND(SUM(peso_neto_t), 2) AS totalNetWeightTon,
+    ROUND(AVG(average_usd_per_t), 4) AS averageUsdPerTon
+FROM midagri_exportaciones_core_cache;
+
+DROP TABLE IF EXISTS midagri_exportaciones_top_products_cache;
+CREATE TABLE midagri_exportaciones_top_products_cache AS
+SELECT
+    producto_key AS productoKey,
+    any_value(subpartida_nacional) AS subpartidaNacional,
+    any_value(producto_nombre) AS productoNombre,
+    ROUND(SUM(total_usd), 2) AS totalUsd,
+    ROUND(SUM(peso_neto_t), 2) AS totalNetWeightTon,
+    ROUND(AVG(average_usd_per_t), 4) AS averageUsdPerTon,
+    COUNT(*) AS recordCount
+FROM midagri_exportaciones_core_cache
+GROUP BY producto_key;
+
+DROP TABLE IF EXISTS midagri_exportaciones_trend_cache;
+CREATE TABLE midagri_exportaciones_trend_cache AS
+SELECT
+    producto_key AS productoKey,
+    any_value(subpartida_nacional) AS subpartidaNacional,
+    any_value(producto_nombre) AS productoNombre,
+    CAST(fecha AS VARCHAR) AS fecha,
+    ROUND(SUM(total_usd), 2) AS totalUsd,
+    ROUND(SUM(peso_neto_t), 2) AS totalNetWeightTon,
+    ROUND(AVG(average_usd_per_t), 4) AS averageUsdPerTon,
+    COUNT(*) AS recordCount
+FROM midagri_exportaciones_core_cache
+GROUP BY producto_key, fecha;
+
+DROP TABLE IF EXISTS midagri_importaciones_overview_cache;
+CREATE TABLE midagri_importaciones_overview_cache AS
+SELECT
+    CAST(MAX(fecha) AS VARCHAR) AS latestDate,
+    COUNT(*) AS totalRecords,
+    COUNT(DISTINCT producto_key) AS productCount,
+    ROUND(SUM(total_usd), 2) AS totalUsd,
+    ROUND(SUM(peso_neto_t), 2) AS totalNetWeightTon,
+    ROUND(AVG(average_usd_per_t), 4) AS averageUsdPerTon
+FROM midagri_importaciones_core_cache;
+
+DROP TABLE IF EXISTS midagri_importaciones_top_products_cache;
+CREATE TABLE midagri_importaciones_top_products_cache AS
+SELECT
+    producto_key AS productoKey,
+    any_value(subpartida_nacional) AS subpartidaNacional,
+    any_value(producto_nombre) AS productoNombre,
+    ROUND(SUM(total_usd), 2) AS totalUsd,
+    ROUND(SUM(peso_neto_t), 2) AS totalNetWeightTon,
+    ROUND(AVG(average_usd_per_t), 4) AS averageUsdPerTon,
+    COUNT(*) AS recordCount
+FROM midagri_importaciones_core_cache
+GROUP BY producto_key;
+
+DROP TABLE IF EXISTS midagri_importaciones_trend_cache;
+CREATE TABLE midagri_importaciones_trend_cache AS
+SELECT
+    producto_key AS productoKey,
+    any_value(subpartida_nacional) AS subpartidaNacional,
+    any_value(producto_nombre) AS productoNombre,
+    CAST(fecha AS VARCHAR) AS fecha,
+    ROUND(SUM(total_usd), 2) AS totalUsd,
+    ROUND(SUM(peso_neto_t), 2) AS totalNetWeightTon,
+    ROUND(AVG(average_usd_per_t), 4) AS averageUsdPerTon,
+    COUNT(*) AS recordCount
+FROM midagri_importaciones_core_cache
 GROUP BY producto_key, fecha;
 
 ANALYZE;

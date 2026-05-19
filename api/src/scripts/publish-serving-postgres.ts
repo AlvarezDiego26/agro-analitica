@@ -124,6 +124,132 @@ const servingExports: Array<{ tableName: string; query: string }> = [
         CAST(operationCount AS BIGINT) AS operation_count
       FROM sunat_product_trend_cache
     `
+  },
+  {
+    tableName: "sisap_overview",
+    query: `
+      SELECT
+        CAST(latestDate AS DATE) AS latest_date,
+        CAST(analyzedRows AS BIGINT) AS analyzed_rows,
+        CAST(productCount AS BIGINT) AS product_count,
+        CAST(originCount AS BIGINT) AS origin_count,
+        CAST(overallAverage AS DOUBLE) AS overall_average,
+        CAST(totalVolumeTon AS DOUBLE) AS total_volume_ton,
+        CAST(averageVolumeTon AS DOUBLE) AS average_volume_ton
+      FROM dashboard_overview_cache
+    `
+  },
+  {
+    tableName: "sisap_top_products",
+    query: `
+      SELECT
+        productoNombre AS producto_nombre,
+        CAST(averagePrice AS DOUBLE) AS average_price,
+        CAST(minPrice AS DOUBLE) AS min_price,
+        CAST(maxPrice AS DOUBLE) AS max_price,
+        CAST(recordCount AS BIGINT) AS record_count,
+        CAST(totalVolumeTon AS DOUBLE) AS total_volume_ton
+      FROM dashboard_top_products_cache
+    `
+  },
+  {
+    tableName: "sisap_product_trend",
+    query: `
+      SELECT
+        productoKey AS producto_key,
+        CAST(fecha AS DATE) AS fecha,
+        productoNombre AS producto_nombre,
+        CAST(averagePrice AS DOUBLE) AS average_price,
+        CAST(minPrice AS DOUBLE) AS min_price,
+        CAST(maxPrice AS DOUBLE) AS max_price,
+        CAST(recordCount AS BIGINT) AS record_count,
+        CAST(totalVolumeTon AS DOUBLE) AS total_volume_ton
+      FROM sisap_product_trend_cache
+    `
+  },
+  {
+    tableName: "midagri_exports_overview",
+    query: `
+      SELECT
+        CAST(latestDate AS DATE) AS latest_date,
+        CAST(totalRecords AS BIGINT) AS total_records,
+        CAST(productCount AS BIGINT) AS product_count,
+        CAST(totalUsd AS DOUBLE) AS total_usd,
+        CAST(totalNetWeightTon AS DOUBLE) AS total_net_weight_ton,
+        CAST(averageUsdPerTon AS DOUBLE) AS average_usd_per_ton
+      FROM midagri_exportaciones_overview_cache
+    `
+  },
+  {
+    tableName: "midagri_exports_top_products",
+    query: `
+      SELECT
+        productoKey AS producto_key,
+        subpartidaNacional AS subpartida_nacional,
+        productoNombre AS producto_nombre,
+        CAST(totalUsd AS DOUBLE) AS total_usd,
+        CAST(totalNetWeightTon AS DOUBLE) AS total_net_weight_ton,
+        CAST(averageUsdPerTon AS DOUBLE) AS average_usd_per_ton,
+        CAST(recordCount AS BIGINT) AS record_count
+      FROM midagri_exportaciones_top_products_cache
+    `
+  },
+  {
+    tableName: "midagri_exports_trend",
+    query: `
+      SELECT
+        productoKey AS producto_key,
+        CAST(fecha AS DATE) AS fecha,
+        subpartidaNacional AS subpartida_nacional,
+        productoNombre AS producto_nombre,
+        CAST(totalUsd AS DOUBLE) AS total_usd,
+        CAST(totalNetWeightTon AS DOUBLE) AS total_net_weight_ton,
+        CAST(averageUsdPerTon AS DOUBLE) AS average_usd_per_ton,
+        CAST(recordCount AS BIGINT) AS record_count
+      FROM midagri_exportaciones_trend_cache
+    `
+  },
+  {
+    tableName: "midagri_imports_overview",
+    query: `
+      SELECT
+        CAST(latestDate AS DATE) AS latest_date,
+        CAST(totalRecords AS BIGINT) AS total_records,
+        CAST(productCount AS BIGINT) AS product_count,
+        CAST(totalUsd AS DOUBLE) AS total_usd,
+        CAST(totalNetWeightTon AS DOUBLE) AS total_net_weight_ton,
+        CAST(averageUsdPerTon AS DOUBLE) AS average_usd_per_ton
+      FROM midagri_importaciones_overview_cache
+    `
+  },
+  {
+    tableName: "midagri_imports_top_products",
+    query: `
+      SELECT
+        productoKey AS producto_key,
+        subpartidaNacional AS subpartida_nacional,
+        productoNombre AS producto_nombre,
+        CAST(totalUsd AS DOUBLE) AS total_usd,
+        CAST(totalNetWeightTon AS DOUBLE) AS total_net_weight_ton,
+        CAST(averageUsdPerTon AS DOUBLE) AS average_usd_per_ton,
+        CAST(recordCount AS BIGINT) AS record_count
+      FROM midagri_importaciones_top_products_cache
+    `
+  },
+  {
+    tableName: "midagri_imports_trend",
+    query: `
+      SELECT
+        productoKey AS producto_key,
+        CAST(fecha AS DATE) AS fecha,
+        subpartidaNacional AS subpartida_nacional,
+        productoNombre AS producto_nombre,
+        CAST(totalUsd AS DOUBLE) AS total_usd,
+        CAST(totalNetWeightTon AS DOUBLE) AS total_net_weight_ton,
+        CAST(averageUsdPerTon AS DOUBLE) AS average_usd_per_ton,
+        CAST(recordCount AS BIGINT) AS record_count
+      FROM midagri_importaciones_trend_cache
+    `
   }
 ];
 

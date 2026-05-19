@@ -14,7 +14,9 @@ export function bootstrap() {
     healthController: controllers.healthController,
     dashboardController: controllers.dashboardController,
     plannerController: controllers.plannerController,
-    sunatExportsController: controllers.sunatExportsController
+    sisapController: controllers.sisapController,
+    sunatExportsController: controllers.sunatExportsController,
+    midagriController: controllers.midagriController
   });
 
   app.use(notFoundHandler);

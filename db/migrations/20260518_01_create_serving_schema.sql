@@ -87,3 +87,114 @@ CREATE TABLE IF NOT EXISTS serving.sunat_product_trend (
 
 CREATE INDEX IF NOT EXISTS sunat_product_trend_producto_key_fecha_idx
     ON serving.sunat_product_trend (producto_key, fecha DESC);
+
+CREATE TABLE IF NOT EXISTS serving.sisap_overview (
+    latest_date DATE,
+    analyzed_rows BIGINT NOT NULL,
+    product_count BIGINT NOT NULL,
+    origin_count BIGINT NOT NULL,
+    overall_average NUMERIC(18, 4),
+    total_volume_ton NUMERIC(18, 4),
+    average_volume_ton NUMERIC(18, 4),
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS serving.sisap_top_products (
+    producto_nombre TEXT NOT NULL PRIMARY KEY,
+    average_price NUMERIC(18, 4),
+    min_price NUMERIC(18, 4),
+    max_price NUMERIC(18, 4),
+    record_count BIGINT NOT NULL,
+    total_volume_ton NUMERIC(18, 4),
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS serving.sisap_product_trend (
+    producto_key TEXT NOT NULL,
+    fecha DATE NOT NULL,
+    producto_nombre TEXT NOT NULL,
+    average_price NUMERIC(18, 4),
+    min_price NUMERIC(18, 4),
+    max_price NUMERIC(18, 4),
+    record_count BIGINT NOT NULL,
+    total_volume_ton NUMERIC(18, 4),
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (producto_key, fecha)
+);
+
+CREATE INDEX IF NOT EXISTS sisap_product_trend_producto_key_fecha_idx
+    ON serving.sisap_product_trend (producto_key, fecha DESC);
+
+CREATE TABLE IF NOT EXISTS serving.midagri_exports_overview (
+    latest_date DATE,
+    total_records BIGINT NOT NULL,
+    product_count BIGINT NOT NULL,
+    total_usd NUMERIC(18, 2),
+    total_net_weight_ton NUMERIC(18, 2),
+    average_usd_per_ton NUMERIC(18, 4),
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS serving.midagri_exports_top_products (
+    producto_key TEXT NOT NULL PRIMARY KEY,
+    subpartida_nacional TEXT,
+    producto_nombre TEXT NOT NULL,
+    total_usd NUMERIC(18, 2),
+    total_net_weight_ton NUMERIC(18, 2),
+    average_usd_per_ton NUMERIC(18, 4),
+    record_count BIGINT NOT NULL,
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS serving.midagri_exports_trend (
+    producto_key TEXT NOT NULL,
+    fecha DATE NOT NULL,
+    subpartida_nacional TEXT,
+    producto_nombre TEXT NOT NULL,
+    total_usd NUMERIC(18, 2),
+    total_net_weight_ton NUMERIC(18, 2),
+    average_usd_per_ton NUMERIC(18, 4),
+    record_count BIGINT NOT NULL,
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (producto_key, fecha)
+);
+
+CREATE INDEX IF NOT EXISTS midagri_exports_trend_producto_key_fecha_idx
+    ON serving.midagri_exports_trend (producto_key, fecha DESC);
+
+CREATE TABLE IF NOT EXISTS serving.midagri_imports_overview (
+    latest_date DATE,
+    total_records BIGINT NOT NULL,
+    product_count BIGINT NOT NULL,
+    total_usd NUMERIC(18, 2),
+    total_net_weight_ton NUMERIC(18, 2),
+    average_usd_per_ton NUMERIC(18, 4),
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS serving.midagri_imports_top_products (
+    producto_key TEXT NOT NULL PRIMARY KEY,
+    subpartida_nacional TEXT,
+    producto_nombre TEXT NOT NULL,
+    total_usd NUMERIC(18, 2),
+    total_net_weight_ton NUMERIC(18, 2),
+    average_usd_per_ton NUMERIC(18, 4),
+    record_count BIGINT NOT NULL,
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS serving.midagri_imports_trend (
+    producto_key TEXT NOT NULL,
+    fecha DATE NOT NULL,
+    subpartida_nacional TEXT,
+    producto_nombre TEXT NOT NULL,
+    total_usd NUMERIC(18, 2),
+    total_net_weight_ton NUMERIC(18, 2),
+    average_usd_per_ton NUMERIC(18, 4),
+    record_count BIGINT NOT NULL,
+    refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (producto_key, fecha)
+);
+
+CREATE INDEX IF NOT EXISTS midagri_imports_trend_producto_key_fecha_idx
+    ON serving.midagri_imports_trend (producto_key, fecha DESC);
