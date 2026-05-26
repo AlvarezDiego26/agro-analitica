@@ -69,7 +69,7 @@ Notas:
 - `duckdb-refresh` reconstruye `agro_build.duckdb` desde MinIO/Delta y publica `agro_api_snapshot.duckdb`
 - `api` debe leer `agro_api_snapshot.duckdb` en modo `READ_ONLY`
 - `duckdb` queda dentro del compose como contenedor de soporte para inspeccion y validacion del runtime
-- `52-build-api-cache-dummy.sql` queda solo como script de demo local; produccion usa `51-build-api-cache-fast.sql` para refrescar y `00-node-backend-init.sql` para iniciar la API
+- produccion usa `51-build-api-cache-fast.sql` para refrescar desde MinIO/Delta y `00-node-backend-init.sql` para iniciar la API
 
 ## Yarn
 

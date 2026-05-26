@@ -42,12 +42,6 @@ export class AnalyzeCampaignUseCase {
     ]);
 
     return buildPlannerAnalysisResult(normalizedInput, analysis, {
-      historicalDeltaPct: productoKey === "esparrago verde" ? -22 : undefined,
-      projectedLossPen: productoKey === "esparrago verde" ? -8400 : undefined,
-      aiExplanation:
-        productoKey === "esparrago verde"
-          ? "SISAP reporta +38% de intenciones de siembra de esparrago en Pisco para marzo-abril. El modelo proyecta caida sostenida de precio entre las semanas 14 y 22 por sobreoferta regional. Tu campana coincide con el punto mas bajo del ciclo."
-          : undefined,
       priceProjection,
       recommendedAlternatives
     });
