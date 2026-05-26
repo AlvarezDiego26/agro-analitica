@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ContainerName = "duckdb-agro"
+  [string]$ContainerName = "agro-analitica-duckdb"
 )
 
 $runtimePath = Split-Path -Parent $MyInvocation.MyCommand.Path | Split-Path -Parent

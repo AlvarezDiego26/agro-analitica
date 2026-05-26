@@ -27,7 +27,7 @@ duckdb/
 ## Convencion
 
 - `runtime/`
-  - levanta el contenedor
+  - guarda la configuracion y scripts de DuckDB usados por el compose raiz
   - persiste el archivo `.duckdb`
   - guarda los scripts base para extensiones, secreto S3 y vistas
 

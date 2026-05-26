@@ -42,7 +42,7 @@ services:
       PORT: 3001
       API_PREFIX: /api
       DUCKDB_DATABASE_PATH: /app/db/duckdb/runtime/data/agro_api_snapshot.duckdb
-      DUCKDB_INIT_SQL_PATH: /app/db/duckdb/runtime/sql/52-build-api-cache-dummy.sql
+      DUCKDB_INIT_SQL_PATH: /app/db/duckdb/runtime/sql/00-node-backend-init.sql
       DUCKDB_ACCESS_MODE: READ_ONLY
     ports:
       - "3001:3001"
