@@ -1,6 +1,8 @@
 services:
   duckdb:
-    image: duckdb/duckdb:latest
+    build:
+      context: ./db/duckdb/runtime
+    image: agro-analitica-duckdb-runtime:latest
     container_name: agro-analitica-duckdb
     profiles:
       - tools
@@ -18,7 +20,9 @@ services:
       - ./db/duckdb/validation:/validation
 
   duckdb-refresh:
-    image: duckdb/duckdb:latest
+    build:
+      context: ./db/duckdb/runtime
+    image: agro-analitica-duckdb-runtime:latest
     profiles:
       - jobs
     env_file:

@@ -18,7 +18,10 @@ export function buildPlannerAnalysisResult(
   const latestPrice = row?.latestPrice ?? averagePrice;
   const estimatedRoi = normalizeRoi(row?.estimatedRoi);
   const riskLevel = normalizeRiskLevel(row?.riskLevel, estimatedRoi);
-  const priceProjection = normalizePriceProjection(extras?.priceProjection, input.fechaSiembra);
+  const priceProjection = normalizePriceProjection(extras?.priceProjection, input.fechaSiembra, {
+    fallbackPrice: latestPrice || averagePrice,
+    fallbackVolumeTon: row?.averageVolumeTon ?? null
+  });
   const sowingPrice = findProjectionPrice(priceProjection, input.fechaSiembra) ?? latestPrice;
   const harvestPrice = findProjectionPrice(priceProjection, input.fechaCosecha) ?? latestPrice;
   const hasUserInvestment = typeof input.inversionPen === "number" && input.inversionPen > 0;
@@ -87,9 +90,10 @@ function toRiskSummary(riskLevel: PlannerAnalysisResponse["result"]["riskLevel"]
 
 function normalizePriceProjection(
   rows: PlannerPriceProjectionPoint[] | undefined,
-  fechaSiembra?: string
+  fechaSiembra: string | undefined,
+  fallback: { fallbackPrice: number; fallbackVolumeTon: number | null }
 ): PlannerAnalysisResponse["result"]["priceProjection"] {
-  if (!rows || rows.length === 0) {
+  if ((!rows || rows.length === 0) && fallback.fallbackPrice <= 0) {
     return undefined;
   }
 
@@ -97,8 +101,12 @@ function normalizePriceProjection(
   const baseDate = fechaSiembra ? new Date(fechaSiembra) : new Date();
   const baseYear = Number.isNaN(baseDate.getTime()) ? new Date().getUTCFullYear() : baseDate.getUTCFullYear();
   const baseMonth = Number.isNaN(baseDate.getTime()) ? new Date().getUTCMonth() : baseDate.getUTCMonth();
+  const sourceRows =
+    rows && rows.length > 1
+      ? rows
+      : buildCarryForwardProjectionRows(rows?.[0], baseMonth, fallback.fallbackPrice, fallback.fallbackVolumeTon);
 
-  return rows
+  return sourceRows
     .filter((row) => row.predictedPrice !== null)
     .map((row, index) => {
       const label = row.month?.trim() || row.monthLabel?.trim() || allMonths[(baseMonth + index) % 12];
@@ -119,6 +127,36 @@ function normalizePriceProjection(
         volumeTon: row.volumeTon ?? null
       };
     });
+}
+
+function buildCarryForwardProjectionRows(
+  row: PlannerPriceProjectionPoint | undefined,
+  baseMonth: number,
+  fallbackPrice: number,
+  fallbackVolumeTon: number | null
+): PlannerPriceProjectionPoint[] {
+  const price = row?.predictedPrice ?? row?.historicalPrice ?? fallbackPrice;
+
+  if (price <= 0) {
+    return [];
+  }
+
+  const allMonths = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const startMonth = baseMonth;
+
+  return Array.from({ length: 8 }, (_, index) => {
+    const monthLabel = allMonths[(startMonth + index) % 12];
+
+    return {
+      month: monthLabel,
+      monthLabel,
+      historicalPrice: row?.historicalPrice ?? price,
+      predictedPrice: price,
+      oversupplyZone: false,
+      isLowPoint: false,
+      volumeTon: row?.volumeTon ?? fallbackVolumeTon
+    };
+  });
 }
 
 function normalizeRecommendedAlternatives(

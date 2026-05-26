@@ -52,20 +52,37 @@ export class DuckDbPlannerRepository implements PlannerRepository {
   async findProductAnalysis(producto: string, valle: string): Promise<PlannerProductAnalysisSnapshot | null> {
     const normalizedProducto = normalizeLookupTerm(producto);
     const normalizedValle = normalizeLookupTerm(valle);
+    const productoTerms = normalizedProducto.split(/\s+/).filter((term) => term.length >= 3);
+    const productoWhere = buildProductLookupWhere(normalizedProducto, productoTerms);
+    const regionWhere = normalizedValle
+      ? `AND (region ILIKE '%${escapeSqlLiteral(normalizedValle)}%' OR region = '')`
+      : "";
 
     const [row] = await this.queryExecutor.execute<DuckDbPlannerAnalysisRow>(`
       SELECT *
       FROM planner_product_cache
-      WHERE producto_key LIKE '%${escapeSqlLiteral(normalizedProducto)}%'
-        AND region ILIKE '%${escapeSqlLiteral(normalizedValle)}%'
-      ORDER BY records DESC
+      WHERE ${productoWhere}
+        ${regionWhere}
+      ORDER BY
+        CASE
+          WHEN producto_key = '${escapeSqlLiteral(normalizedProducto)}' THEN 0
+          WHEN producto_key LIKE '%${escapeSqlLiteral(normalizedProducto)}%' THEN 1
+          ELSE 2
+        END,
+        records DESC,
+        latestPrice DESC
       LIMIT 1
     `);
 
     return row ? mapPlannerAnalysisRow(row) : null;
   }
 
-  async findPriceProjection(productoKey: string, _valle: string): Promise<PlannerPriceProjectionPoint[]> {
+  async findPriceProjection(productoKey: string, valle: string): Promise<PlannerPriceProjectionPoint[]> {
+    const normalizedValle = normalizeLookupTerm(valle);
+    const regionWhere = normalizedValle
+      ? `AND (region ILIKE '%${escapeSqlLiteral(normalizedValle)}%' OR region = '')`
+      : "";
+
     const rows = await this.queryExecutor.execute<DuckDbPlannerProjectionRow>(`
       SELECT
         monthLabel AS month,
@@ -76,6 +93,7 @@ export class DuckDbPlannerRepository implements PlannerRepository {
         predictedVolumeTon
       FROM planner_price_projection_cache
       WHERE producto_key = '${escapeSqlLiteral(productoKey)}'
+        ${regionWhere}
       ORDER BY CASE monthLabel
         WHEN 'Mar' THEN 1
         WHEN 'Abr' THEN 2
@@ -122,6 +140,11 @@ export class DuckDbPlannerRepository implements PlannerRepository {
   }
 
   async findRegionalAlternatives(valle: string): Promise<PlannerAlternativeCandidate[]> {
+    const normalizedValle = normalizeLookupTerm(valle);
+    const regionWhere = normalizedValle
+      ? `WHERE region ILIKE '%${escapeSqlLiteral(normalizedValle)}%' OR region = ''`
+      : "";
+
     const rows = await this.queryExecutor.execute<DuckDbPlannerAlternativeRow>(`
       SELECT
         productoNombre AS producto,
@@ -131,13 +154,24 @@ export class DuckDbPlannerRepository implements PlannerRepository {
         latestPrice AS projectedPricePen,
         explanation AS message
       FROM planner_product_cache
-      WHERE region ILIKE '%${escapeSqlLiteral(valle)}%'
+      ${regionWhere}
       ORDER BY estimatedRoi DESC
       LIMIT 3
     `);
 
     return rows.map(mapAlternativeRow);
   }
+}
+
+function buildProductLookupWhere(normalizedProducto: string, productoTerms: string[]): string {
+  const exactTerm = escapeSqlLiteral(normalizedProducto);
+  const clauses = [`producto_key LIKE '%${exactTerm}%'`];
+
+  for (const term of productoTerms) {
+    clauses.push(`producto_key LIKE '%${escapeSqlLiteral(term)}%'`);
+  }
+
+  return `(${clauses.join(" OR ")})`;
 }
 
 function mapPlannerAnalysisRow(row: DuckDbPlannerAnalysisRow): PlannerProductAnalysisSnapshot {
