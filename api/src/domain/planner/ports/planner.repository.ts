@@ -1,5 +1,12 @@
-import type { PlannerAnalysisInput, PlannerAnalysisResponse } from "../entities/planner-analysis.entity.js";
+import type {
+  PlannerAlternativeCandidate,
+  PlannerPriceProjectionPoint,
+  PlannerProductAnalysisSnapshot
+} from "../entities/planner-analysis.entity.js";
 
 export interface PlannerRepository {
-  analyzeCampaign(input?: Partial<PlannerAnalysisInput>): Promise<PlannerAnalysisResponse>;
+  findProductAnalysis(producto: string, valle: string): Promise<PlannerProductAnalysisSnapshot | null>;
+  findPriceProjection(productoKey: string, valle: string): Promise<PlannerPriceProjectionPoint[]>;
+  findRecommendedAlternatives(productoKey: string, valle: string): Promise<PlannerAlternativeCandidate[]>;
+  findRegionalAlternatives(valle: string): Promise<PlannerAlternativeCandidate[]>;
 }

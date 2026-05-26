@@ -8,31 +8,31 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3001),
   API_PREFIX: z.string().default("/api"),
-  DATA_SOURCE: z.enum(["duckdb", "postgres"]).default("duckdb"),
   DUCKDB_DATABASE_PATH: z.string().optional(),
   DUCKDB_INIT_SQL_PATH: z.string().optional(),
-  POSTGRES_URL: z.string().optional(),
-  POSTGRES_SCHEMA: z.string().default("serving"),
-  POSTGRES_SSL: z
-    .string()
-    .optional()
-    .transform((value) => value === "true")
+  DUCKDB_ACCESS_MODE: z.enum(["READ_ONLY", "READ_WRITE"]).default("READ_ONLY"),
+  SUPABASE_SECRET_KEY: z.string().optional(),
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  AUTH_SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30)
 });
 
 export type Env = {
   nodeEnv: "development" | "test" | "production";
   port: number;
   apiPrefix: string;
-  dataSource: "duckdb" | "postgres";
   duckdb: {
     databasePath: string;
     initSqlPath: string;
     runtimeDir: string;
+    accessMode: "READ_ONLY" | "READ_WRITE";
   };
-  postgres: {
-    connectionString: string | null;
-    schema: string;
-    ssl: boolean;
+  supabase: {
+    url: string | null;
+    serviceRoleKey: string | null;
+  };
+  auth: {
+    sessionTtlDays: number;
   };
 };
 
@@ -45,36 +45,25 @@ export function loadEnv(): Env {
 
   const parsed = envSchema.parse(process.env);
   const runtimeDir = path.resolve(process.cwd(), "../db/duckdb/runtime");
-  const postgresSchema = validateSchemaName(parsed.POSTGRES_SCHEMA);
 
   cachedEnv = {
     nodeEnv: parsed.NODE_ENV,
     port: parsed.PORT,
     apiPrefix: parsed.API_PREFIX,
-    dataSource: parsed.DATA_SOURCE,
     duckdb: {
       databasePath: parsed.DUCKDB_DATABASE_PATH ?? path.join(runtimeDir, "data", "agro.duckdb"),
       initSqlPath: parsed.DUCKDB_INIT_SQL_PATH ?? path.join(runtimeDir, "sql", "00-node-backend-init.sql"),
-      runtimeDir
+      runtimeDir,
+      accessMode: parsed.DUCKDB_ACCESS_MODE
     },
-    postgres: {
-      connectionString: parsed.POSTGRES_URL ?? null,
-      schema: postgresSchema,
-      ssl: parsed.POSTGRES_SSL
+    supabase: {
+      url: parsed.SUPABASE_URL ?? null,
+      serviceRoleKey: parsed.SUPABASE_SECRET_KEY ?? parsed.SUPABASE_SERVICE_ROLE_KEY ?? null
+    },
+    auth: {
+      sessionTtlDays: parsed.AUTH_SESSION_TTL_DAYS
     }
   };
 
-  if (cachedEnv.dataSource === "postgres" && !cachedEnv.postgres.connectionString) {
-    throw new Error("POSTGRES_URL es obligatorio cuando DATA_SOURCE=postgres.");
-  }
-
   return cachedEnv;
-}
-
-function validateSchemaName(value: string): string {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
-    throw new Error(`POSTGRES_SCHEMA invalido: ${value}`);
-  }
-
-  return value;
 }

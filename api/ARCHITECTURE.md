@@ -1,131 +1,110 @@
-# Esquema del Backend
+# Arquitectura del Backend
 
-## Estructura base
+## Flujo actual
 
-```txt
-src/
-├── @types/
-├── app.ts
-├── bootstrap.ts
-├── container.ts
-├── main.ts
-├── application/
-│   ├── dashboard/
-│   │   ├── dtos/
-│   │   └── use-cases/
-│   ├── planner/
-│   │   ├── dtos/
-│   │   └── use-cases/
-│   └── sunat/
-│       ├── dtos/
-│       └── use-cases/
-├── domain/
-│   ├── dashboard/
-│   │   ├── entities/
-│   │   └── ports/
-│   ├── planner/
-│   │   ├── entities/
-│   │   └── ports/
-│   └── sunat/
-│       ├── entities/
-│       └── ports/
-├── infrastructure/
-│   ├── config/
-│   └── persistence/
-│       └── duckdb/
-│           ├── clients/
-│           └── repositories/
-└── interfaces/
-    └── http/
-        ├── controllers/
-        ├── dtos/
-        ├── mappers/
-        ├── middlewares/
-        └── routes/
+`UI -> HTTP -> controller -> use-case -> repository port -> DuckDB repository -> DuckDB cache`
+
+Hoy el backend quedó reducido al flujo real que usa la app:
+
+- `dashboard/overview`
+- `showcase/home`
+- `showcase/market-buyers`
+- `showcase/farm`
+- `planner/analysis`
+- `sunat/exports/overview`
+
+## Regla de capas
+
+- `controller`: recibe request, valida y responde JSON.
+- `use-case`: orquesta la aplicación y aplica lógica de negocio.
+- `repository port`: define lo que el caso de uso necesita.
+- `repository implementation`: consulta DuckDB y mapea resultados.
+- `domain`: define contratos y estructuras sin Express ni SQL.
+
+## Estructura actual
+
+```text
+api/
+├─ src/
+│  ├─ app.ts
+│  ├─ bootstrap.ts
+│  ├─ container.ts
+│  ├─ main.ts
+│  ├─ application/
+│  │  ├─ dashboard/
+│  │  │  └─ use-cases/
+│  │  ├─ planner/
+│  │  │  ├─ services/
+│  │  │  └─ use-cases/
+│  │  ├─ showcase/
+│  │  │  ├─ services/
+│  │  │  └─ use-cases/
+│  │  └─ sunat/
+│  │     └─ use-cases/
+│  ├─ domain/
+│  │  ├─ dashboard/
+│  │  │  ├─ entities/
+│  │  │  └─ ports/
+│  │  ├─ planner/
+│  │  │  ├─ entities/
+│  │  │  └─ ports/
+│  │  ├─ showcase/
+│  │  │  ├─ entities/
+│  │  │  └─ ports/
+│  │  └─ sunat/
+│  │     ├─ entities/
+│  │     └─ ports/
+│  ├─ infrastructure/
+│  │  ├─ config/
+│  │  └─ persistence/
+│  │     ├─ duckdb/
+│  │     │  ├─ clients/
+│  │     │  └─ repositories/
+│  │     └─ shared/
+│  └─ interfaces/
+│     └─ http/
+│        ├─ controllers/
+│        ├─ dtos/
+│        ├─ middlewares/
+│        └─ routes/
 ```
 
-## Que va en cada capa
+## Decisiones de limpieza
 
-- `domain`
-  - entidades del negocio
-  - contratos o puertos
-  - nada de Express
-  - nada de DuckDB
+- Se eliminó `postgres` completo del flujo.
+- Se eliminaron `midagri` y `sisap`.
+- Se eliminaron endpoints no usados de `sunat` como `trend` y `top-products`.
+- Se eliminaron scripts y artefactos locales que no aportaban al runtime actual.
 
-- `application`
-  - casos de uso
-  - DTOs internos de aplicacion
-  - orquestacion entre puertos
+## Qué sí hace el backend ahora
 
-- `infrastructure`
-  - implementaciones concretas
-  - cliente de DuckDB
-  - consultas SQL
-  - configuracion de entorno
+- expone una API HTTP mínima para la UI
+- consulta caches/tablas de DuckDB
+- valida inputs
+- aplica lógica de negocio puntual en `planner`
+- entrega responses listas para el frontend
 
-- `interfaces/http`
-  - controladores
-  - DTOs de entrada HTTP
-  - middlewares
-  - rutas
-  - mapeos request/response si hicieran falta
+## Qué no debería volver a entrar
 
-## Regla sobre genericos
+- ramas paralelas de persistencia que no se usan
+- scripts con credenciales hardcodeadas
+- módulos analíticos no conectados al frontend actual
+- endpoints “por si acaso” sin consumidor real
 
-Usar genericos solo cuando reduzcan duplicacion tecnica sin ocultar el significado del negocio.
+## Regla práctica
 
-### Donde si usar genericos
+Si una nueva pantalla necesita backend:
 
-- helpers tecnicos de infraestructura
-- ejecutores de consultas
-- piezas reutilizables de bajo nivel
-- middlewares reutilizables de validacion
+1. agrega `domain/<modulo>/entities` y `ports`
+2. agrega `application/<modulo>/use-cases`
+3. agrega `interfaces/http/controllers` y `dtos`
+4. implementa el puerto en `infrastructure/persistence/duckdb/repositories`
+5. registra todo en `container.ts`
 
-Ejemplo actual:
+## Antipatrones a evitar
 
-- `DuckDbQueryExecutor.execute<T>()`
-- `validateRequest(source, schema)`
-
-### Donde no usar genericos
-
-- casos de uso
-- puertos de repositorio
-- repositorios concretos
-- controladores
-- entidades
-
-### Por que
-
-- `GetDashboardOverviewUseCase` debe hablar de dashboard, no de `UseCase<TIn, TOut>`
-- `PlannerRepository` debe hablar de analisis de campana, no de CRUD generico
-- nombres explicitos hacen el codigo mas entendible para el equipo
-
-## Convenciones practicas
-
-- los controladores deben ser delgados
-- la validacion HTTP vive en `interfaces/http/dtos` y `interfaces/http/middlewares`
-- los controladores no hacen `parse()` ni `try/catch` por endpoint
-- los errores HTTP se resuelven en un middleware comun
-- los casos de uso viven en `application/.../use-cases`
-- los puertos viven en `domain/.../ports`
-- la implementacion real vive en `infrastructure/...`
-- el wiring vive en `container.ts`
-- el arranque del servidor vive en `bootstrap.ts` y `main.ts`
-
-## Flujo real de una ruta
-
-1. La ruta entra por `interfaces/http/routes`.
-2. Si hace falta, un middleware valida `query`, `body` o `params`.
-3. El controller recibe datos ya validados.
-4. El controller llama al caso de uso.
-5. El caso de uso depende de un puerto del dominio.
-6. La implementacion real del puerto vive en infraestructura.
-7. Si algo falla, el error lo resuelve el middleware global.
-
-## Nota importante
-
-La arquitectura hexagonal vive en `src/`.
-
-- `src/` es el codigo fuente real
-- `dist/` es solo salida compilada
-- `dist/` no se usa para disenar ni mantener la arquitectura
+- controller con lógica de negocio
+- use-case con SQL embebido
+- repository devolviendo respuestas HTTP
+- infraestructura con ramas de datasource que no se usan
+- código “future-proof” sin flujo real en la app

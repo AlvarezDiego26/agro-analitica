@@ -12,8 +12,12 @@ export class DuckDbQueryExecutor {
   async execute<T>(sql: string): Promise<T[]> {
     return this.runSerialized(async () => {
       const connection = await this.getConnection();
-      const reader = await connection.runAndReadAll(sql);
-      return reader.getRowObjectsJson() as T[];
+      try {
+        const reader = await connection.runAndReadAll(sql);
+        return reader.getRowObjectsJson() as T[];
+      } finally {
+        await this.cleanupMemory(connection);
+      }
     });
   }
 
@@ -52,7 +56,7 @@ export class DuckDbQueryExecutor {
     if (!DuckDbQueryExecutor.instancePromise) {
       DuckDbQueryExecutor.instancePromise = DuckDBInstance.create(this.env.duckdb.databasePath, {
         threads: "2",
-        access_mode: "READ_ONLY"
+        access_mode: this.env.duckdb.accessMode
       });
     }
 
@@ -69,6 +73,15 @@ export class DuckDbQueryExecutor {
 
     for (const statement of statements) {
       await connection.run(statement);
+    }
+  }
+
+  private async cleanupMemory(connection: DuckDBConnection): Promise<void> {
+    try {
+      await connection.run("PRAGMA shrink_memory");
+    } catch {
+      // El backend no debe fallar si la liberacion de memoria no aplica
+      // al motor o al modo de acceso actual.
     }
   }
 }

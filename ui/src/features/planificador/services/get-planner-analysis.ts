@@ -1,30 +1,20 @@
 import { apiClient } from "../../../lib/api-client";
-import type { PlannerAnalysis } from "../types";
+import type { PlannerAnalysis, PlannerAnalysisRequest } from "../types";
 
-export async function getPlannerAnalysis(): Promise<PlannerAnalysis> {
-  try {
-    return await apiClient<PlannerAnalysis>({
-      path: "/api/planner/analysis?producto=Ajo&hectareas=4&fechaSiembra=2026-04-15&valle=Pisco"
-    });
-  } catch {
-    return {
-      input: {
-        producto: "Ajo",
-        hectareas: 4,
-        fechaSiembra: "2026-04-15",
-        valle: "Pisco"
-      },
-      result: {
-        riskLevel: "high",
-        estimatedRoi: -12,
-        averagePrice: 6.42,
-        latestPrice: 7.63,
-        averageVolumeTon: 67.05,
-        title: "ALTO",
-        summary: "No recomendado en esta ventana",
-        explanation:
-          "SISAP muestra actividad reciente para Ajo y una senal de retorno debil para esta combinacion base. Usa el analisis vivo con la API encendida para obtener el calculo actualizado."
-      }
-    };
+export async function getPlannerAnalysis(request: PlannerAnalysisRequest): Promise<PlannerAnalysis> {
+  const params = new URLSearchParams({
+    producto: request.producto,
+    hectareas: String(request.hectareas),
+    fechaSiembra: request.fechaSiembra,
+    fechaCosecha: request.fechaCosecha ?? "",
+    valle: request.valle,
+    tipoMercado: request.tipoMercado
+  });
+  if (request.inversionPen !== undefined) {
+    params.append("inversionPen", String(request.inversionPen));
   }
+
+  return apiClient<PlannerAnalysis>({
+    path: `/api/planner/analysis?${params.toString()}`
+  });
 }

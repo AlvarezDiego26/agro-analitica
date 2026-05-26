@@ -28,9 +28,31 @@ export type MarketOverview = {
 
 export type MarketplaceTab = "demanda" | "insumos";
 
+type SupplyInsightTone = "good" | "warn" | "neutral";
+
+export type SupplyFilter =
+  | "Todos"
+  | "Fertilizantes"
+  | "Bioestimulantes"
+  | "Plaguicidas"
+  | "Semillas"
+  | "Riego"
+  | "Herramientas";
+
 export type SupplyItem = {
-  category: string;
+  id: string;
+  category: SupplyFilter;
   title: string;
   supplier: string;
+  presentation: string;
+  regionLabel: string;
+  updatedLabel: string;
+  recommendedCrop: string;
+  useCase: string;
   pricePen: number;
+  marketLowPen: number;
+  marketHighPen: number;
+  signalLabel: string;
+  signalDescription: string;
+  tone: SupplyInsightTone;
 };

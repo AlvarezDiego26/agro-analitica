@@ -24,12 +24,15 @@
     ]
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
     "next-env.d.ts",
+    "next.config.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tailwind.config.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [
+    ".next",
     "node_modules"
   ]
 }

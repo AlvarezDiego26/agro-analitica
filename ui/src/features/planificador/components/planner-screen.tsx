@@ -1,15 +1,14 @@
-import type { PlannerAnalysis } from "../types";
-import { MobilePlannerScreen } from "./planner-screen.mobile";
 import { DesktopPlannerScreen } from "./planner-screen.desktop";
+import { MobilePlannerScreen } from "./planner-screen.mobile";
 
-export function PlannerScreen(props: Readonly<{ analysis: PlannerAnalysis }>) {
+export function PlannerScreen() {
   return (
     <>
-      <div className="block xl:hidden">
-        <MobilePlannerScreen {...props} />
+      <div className="hidden md:block">
+        <DesktopPlannerScreen />
       </div>
-      <div className="hidden xl:block">
-        <DesktopPlannerScreen {...props} />
+      <div className="md:hidden">
+        <MobilePlannerScreen />
       </div>
     </>
   );

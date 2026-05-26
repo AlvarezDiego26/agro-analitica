@@ -1,10 +1,18 @@
 import { LoginScreen } from "../../features/auth/components/login-screen";
 
 export const metadata = {
-  title: "Inicia sesión | AgroAnalítica",
-  description: "Ingresa a tu cuenta de productor en AgroAnalítica",
+  title: "Inicia sesion | AgroAnalitica",
+  description: "Ingresa a tu cuenta de productor en AgroAnalitica"
 };
 
-export default function LoginPage() {
-  return <LoginScreen />;
+type LoginPageProps = {
+  searchParams?: Promise<{
+    next?: string;
+    reason?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  return <LoginScreen nextHref={resolvedSearchParams.next} reason={resolvedSearchParams.reason} />;
 }

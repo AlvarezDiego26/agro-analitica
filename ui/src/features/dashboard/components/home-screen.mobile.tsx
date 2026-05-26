@@ -1,37 +1,100 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowRight, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { DashboardOverviewResponse } from "../types";
 import { DashboardShell } from "../../../components/shell/dashboard-shell";
 import { UiCard } from "../../../components/ui/ui-card";
 import { views } from "../../../config/views";
+import { DashboardMetrics } from "./dashboard-metrics";
+import { DashboardActiveCampaigns } from "./dashboard-active-campaigns";
+import { DashboardRecommendation } from "./dashboard-recommendation";
 
-export function MobileHomeScreen({ dashboard: _dashboard }: Readonly<{ dashboard: DashboardOverviewResponse }>) {
-  const featuredProducts = [
-    {
-      name: "Espárrago verde",
-      code: "UC-157",
-      hectares: "8.5 ha",
-      risk: "Riesgo medio",
-      riskType: "amber",
-      sowingProgress: 62,
-      sowingColor: "bg-[#E8751A]",
-      projectedPrice: "3.40",
-      delta: "4.2 %",
-      deltaType: "down"
-    },
-    {
-      name: "Uva Red Globe",
-      code: "Floración",
-      hectares: "4 ha",
-      risk: "Mercado activo",
-      riskType: "emerald",
-      sowingProgress: 34,
-      sowingColor: "bg-emerald-500",
-      projectedPrice: "6.10",
-      delta: "",
-      deltaType: "none"
+type MobileHomeScreenProps = {
+  dashboard: DashboardOverviewResponse;
+  showcase: any;
+  initialCampaigns?: any[];
+};
+
+export function MobileHomeScreen({ dashboard, showcase, initialCampaigns = [] }: Readonly<MobileHomeScreenProps>) {
+  const summary = showcase.summary;
+  const featuredProducts = showcase.featuredCampaigns;
+  const recommendation = summary.recommendation;
+
+  const [userCampaigns, setUserCampaigns] = useState<any[]>(initialCampaigns);
+  const [realHectares, setRealHectares] = useState(() => initialCampaigns.reduce((acc: number, c: any) => acc + (c.hectares || 0), 0));
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCampaigns = () => {
+      import("../../planificador/services/get-current-user-campaigns").then(({ getCurrentUserCampaigns }) => {
+        getCurrentUserCampaigns().then(res => {
+          if (isMounted) {
+            setUserCampaigns(res.campaigns);
+            const total = res.campaigns.reduce((acc: number, c: any) => acc + (c.hectares || 0), 0);
+            setRealHectares(total);
+          }
+        }).catch(() => {});
+      });
+    };
+
+    fetchCampaigns();
+    window.addEventListener("campaigns-updated", fetchCampaigns);
+
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener("campaigns-updated", fetchCampaigns);
+    };
+  }, []);
+
+  const mappedUserCampaigns = userCampaigns.map((c: any) => ({
+    name: c.cropName,
+    code: c.campaignStatus === "draft" ? "Borrador" : c.campaignStatus,
+    hectares: `${c.hectares} ha`,
+    risk: c.plannerRiskLevel === "low" ? "Riesgo bajo" : c.plannerRiskLevel === "medium" ? "Riesgo medio" : "Riesgo alto",
+    riskType: c.plannerRiskLevel === "low" ? "emerald" : c.plannerRiskLevel === "medium" ? "amber" : "red",
+    sowingProgress: 50,
+    sowingColor: "bg-emerald-500",
+    projectedPrice: "0.00",
+    delta: "0 %",
+    deltaType: "none" as const
+  }));
+
+  const mappedFeaturedProducts = featuredProducts.map((p: any) => ({
+    name: p.name,
+    code: p.codeLabel,
+    hectares: "Sugerencia",
+    risk: p.riskLabel,
+    riskType: p.riskLevel === "low" ? "emerald" : p.riskLevel === "medium" ? "amber" : "red",
+    sowingProgress: p.progressPct,
+    sowingColor: p.riskLevel === "low" ? "bg-emerald-500" : p.riskLevel === "medium" ? "bg-amber-500" : "bg-red-500",
+    projectedPrice: Number(p.projectedPricePen || 0).toFixed(2),
+    delta: `${p.deltaDirection === "up" ? "+" : ""}${p.deltaPct} %`,
+    deltaType: p.deltaDirection
+  }));
+
+  const totalIncome = userCampaigns.reduce((acc: number, c: any) => {
+    const investment = c.estimatedInvestmentPen || (c.hectares * 17500);
+    const roi = c.estimatedRoiPct || 0;
+    return acc + investment * (1 + roi / 100);
+  }, 0);
+
+  const totalInvestment = userCampaigns.reduce((acc: number, c: any) => {
+    return acc + (c.estimatedInvestmentPen || (c.hectares * 17500));
+  }, 0);
+
+  const deltaPct = totalInvestment > 0 ? ((totalIncome - totalInvestment) / totalInvestment) * 100 : 0;
+
+  const realSummary = {
+    ...summary,
+    stats: {
+      ...summary.stats,
+      activeHectares: realHectares,
+      parcelCount: userCampaigns.length,
+      projectedIncomePen: totalIncome,
+      projectedIncomeDeltaPct: deltaPct
     }
-  ];
+  };
 
+  const displayCampaigns = mappedUserCampaigns.length > 0 ? mappedUserCampaigns : mappedFeaturedProducts;
   return (
     <DashboardShell
       title="Hola, Manuel"
@@ -40,37 +103,41 @@ export function MobileHomeScreen({ dashboard: _dashboard }: Readonly<{ dashboard
       showHeaderActions
       bodyClassName="flex flex-col gap-5 pb-6"
     >
-      {/* Alerta Regional */}
-      <UiCard tone="alert">
-        <div className="flex gap-4 items-start">
-          <span className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-red-600 text-white shadow-sm ring-4 ring-red-50 mt-1">
-            <AlertTriangle size={20} strokeWidth={2.5} />
-          </span>
-          <div className="pt-1">
-            <p className="text-[11px] font-black tracking-widest uppercase text-red-600 mb-1">
-              ALERTA REGIONAL
-            </p>
-            <h2 className="text-[16px] leading-tight font-bold text-red-900 mb-2 pr-2">
-              Riesgo ALTO de sobreoferta de Espárrago en Pisco para marzo
-            </h2>
-            <p className="text-[13px] leading-relaxed text-red-700 font-medium">
-              +38% de intenciones de siembra vs. campaña anterior
-            </p>
+      {/* Alertas */}
+      {dashboard.alerts && dashboard.alerts.map((alert, idx) => (
+        <UiCard key={idx} tone={alert.severity === 'high' ? 'alert' : 'default'}>
+          <div className="flex gap-4 items-start">
+            <span className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-xl text-white shadow-sm ring-4 mt-1 ${alert.severity === 'high' ? 'bg-red-600 ring-red-50' : alert.severity === 'medium' ? 'bg-amber-600 ring-amber-50' : 'bg-blue-600 ring-blue-50'}`}>
+              <AlertTriangle size={20} strokeWidth={2.5} />
+            </span>
+            <div className="pt-1">
+              <p className={`text-[11px] font-black tracking-widest uppercase mb-1 ${alert.severity === 'high' ? 'text-red-600' : alert.severity === 'medium' ? 'text-amber-600' : 'text-blue-600'}`}>
+                ALERTA
+              </p>
+              <h2 className={`text-[16px] leading-tight font-bold mb-2 pr-2 ${alert.severity === 'high' ? 'text-red-900' : alert.severity === 'medium' ? 'text-amber-900' : 'text-blue-900'}`}>
+                {alert.title}
+              </h2>
+              <p className={`text-[13px] leading-relaxed font-medium ${alert.severity === 'high' ? 'text-red-700' : alert.severity === 'medium' ? 'text-amber-700' : 'text-blue-700'}`}>
+                {alert.message}
+              </p>
+            </div>
           </div>
-        </div>
-      </UiCard>
+        </UiCard>
+      ))}
 
       {/* Campañas Activas */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3 px-1 mt-1">
-          <h3 className="text-[17px] font-bold tracking-tight text-gray-900">Mis campañas activas</h3>
+          <h3 className="text-[17px] font-bold tracking-tight text-gray-900">
+            {realHectares > 0 ? "Mis campañas activas" : "Sugerencias de cultivos"}
+          </h3>
           <a href={views.planner} className="text-[13px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
-            Ver todas
+            {realHectares > 0 ? "Ver todas" : "Planificar"}
           </a>
         </div>
 
         <div className="grid grid-cols-2 gap-3 h-full">
-          {featuredProducts.map((product) => (
+          {displayCampaigns.map((product: any) => (
             <UiCard key={product.name} className="flex flex-col justify-between hover:border-emerald-200 transition-colors cursor-pointer group p-4">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col xl:flex-row justify-between gap-2 items-start">

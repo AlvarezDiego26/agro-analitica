@@ -40,6 +40,12 @@ CREATE TABLE IF NOT EXISTS serving.planner_product_analysis (
     refreshed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE serving.planner_product_analysis ADD COLUMN IF NOT EXISTS estimated_roi INTEGER;
+ALTER TABLE serving.planner_product_analysis ADD COLUMN IF NOT EXISTS risk_level TEXT;
+ALTER TABLE serving.planner_product_analysis ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE serving.planner_product_analysis ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE serving.planner_product_analysis ADD COLUMN IF NOT EXISTS explanation TEXT;
+
 CREATE INDEX IF NOT EXISTS planner_product_analysis_producto_nombre_idx
     ON serving.planner_product_analysis (LOWER(producto_nombre));
 

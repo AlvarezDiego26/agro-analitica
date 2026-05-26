@@ -1,13 +1,10 @@
 import type {
-  SunatExportTrendInput,
-  SunatExportTrendPoint,
-  SunatExportTrendResponse,
   SunatExportsOverviewResponse,
   SunatTopDestination,
-  SunatTopExportProduct,
-  SunatTopProductsResponse
+  SunatTopExportProduct
 } from "../../../../domain/sunat/entities/export-overview.entity.js";
 import type { SunatExportsRepository } from "../../../../domain/sunat/ports/sunat-exports.repository.js";
+import { toNullableNumber, toRequiredNumber } from "../../shared/repository-helpers.js";
 import { DuckDbQueryExecutor } from "../clients/duckdb-query-executor.js";
 
 type SunatOverviewRow = {
@@ -38,14 +35,6 @@ type SunatTopDestinationRow = {
   operationCount: number | string;
 };
 
-type SunatTrendRow = {
-  fecha: string;
-  totalUsd: number | null;
-  totalNetWeightKg: number | null;
-  averageUsdPerKg: number | null;
-  operationCount: number | string;
-};
-
 export class DuckDbSunatExportsRepository implements SunatExportsRepository {
   constructor(private readonly queryExecutor: DuckDbQueryExecutor) {}
 
@@ -55,7 +44,29 @@ export class DuckDbSunatExportsRepository implements SunatExportsRepository {
       FROM sunat_overview_cache
     `);
 
-    const topProducts = await this.loadTopProducts(5);
+    const topProductRows = await this.queryExecutor.execute<SunatTopProductRow>(`
+      SELECT
+        productoKey,
+        productoNombre,
+        categoriaProducto,
+        totalUsd,
+        totalNetWeightKg,
+        averageUsdPerKg,
+        operationCount
+      FROM sunat_top_products_cache
+      ORDER BY totalUsd DESC
+      LIMIT 5
+    `);
+
+    const topProducts: SunatTopExportProduct[] = topProductRows.map((row) => ({
+      productoKey: row.productoKey,
+      productoNombre: row.productoNombre,
+      categoriaProducto: row.categoriaProducto,
+      totalUsd: toNullableNumber(row.totalUsd),
+      totalNetWeightKg: toNullableNumber(row.totalNetWeightKg),
+      averageUsdPerKg: toNullableNumber(row.averageUsdPerKg),
+      operationCount: toRequiredNumber(row.operationCount)
+    }));
 
     const topDestinationRows = await this.queryExecutor.execute<SunatTopDestinationRow>(`
       SELECT
@@ -72,101 +83,23 @@ export class DuckDbSunatExportsRepository implements SunatExportsRepository {
     const topDestinations: SunatTopDestination[] = topDestinationRows.map((row) => ({
       destinoCodigo: row.destinoCodigo,
       destinoNombre: row.destinoNombre,
-      totalUsd: row.totalUsd !== null && row.totalUsd !== undefined ? Number(row.totalUsd) : null,
-      totalNetWeightKg:
-        row.totalNetWeightKg !== null && row.totalNetWeightKg !== undefined ? Number(row.totalNetWeightKg) : null,
-      operationCount: Number(row.operationCount)
+      totalUsd: toNullableNumber(row.totalUsd),
+      totalNetWeightKg: toNullableNumber(row.totalNetWeightKg),
+      operationCount: toRequiredNumber(row.operationCount)
     }));
 
     return {
       overview: {
         latestDate: overviewRow?.latestDate ?? null,
-        totalRecords: Number(overviewRow?.totalRecords ?? 0),
-        productCount: Number(overviewRow?.productCount ?? 0),
-        destinationCount: Number(overviewRow?.destinationCount ?? 0),
-        totalUsd: overviewRow?.totalUsd !== null && overviewRow?.totalUsd !== undefined ? Number(overviewRow.totalUsd) : null,
-        totalNetWeightKg:
-          overviewRow?.totalNetWeightKg !== null && overviewRow?.totalNetWeightKg !== undefined
-            ? Number(overviewRow.totalNetWeightKg)
-            : null,
-        averageUsdPerKg:
-          overviewRow?.averageUsdPerKg !== null && overviewRow?.averageUsdPerKg !== undefined
-            ? Number(overviewRow.averageUsdPerKg)
-            : null
+        totalRecords: toRequiredNumber(overviewRow?.totalRecords),
+        productCount: toRequiredNumber(overviewRow?.productCount),
+        destinationCount: toRequiredNumber(overviewRow?.destinationCount),
+        totalUsd: toNullableNumber(overviewRow?.totalUsd),
+        totalNetWeightKg: toNullableNumber(overviewRow?.totalNetWeightKg),
+        averageUsdPerKg: toNullableNumber(overviewRow?.averageUsdPerKg)
       },
       topProducts,
       topDestinations
     };
-  }
-
-  async getTopProducts(limit = 5): Promise<SunatTopProductsResponse> {
-    return {
-      items: await this.loadTopProducts(limit)
-    };
-  }
-
-  async getExportsTrend(input: SunatExportTrendInput): Promise<SunatExportTrendResponse> {
-    const normalizedProductoKey = input.productoKey.trim().toLowerCase();
-    const limit = Math.max(1, Math.min(input.limit, 36));
-
-    const rows = await this.queryExecutor.execute<SunatTrendRow>(`
-      SELECT
-        fecha,
-        totalUsd,
-        totalNetWeightKg,
-        averageUsdPerKg,
-        operationCount
-      FROM sunat_product_trend_cache
-      WHERE productoKey = '${normalizedProductoKey}'
-      ORDER BY fecha DESC
-      LIMIT ${limit}
-    `);
-
-    const points: SunatExportTrendPoint[] = rows
-      .map((row) => ({
-        fecha: row.fecha,
-        totalUsd: row.totalUsd !== null && row.totalUsd !== undefined ? Number(row.totalUsd) : null,
-        totalNetWeightKg:
-          row.totalNetWeightKg !== null && row.totalNetWeightKg !== undefined ? Number(row.totalNetWeightKg) : null,
-        averageUsdPerKg:
-          row.averageUsdPerKg !== null && row.averageUsdPerKg !== undefined ? Number(row.averageUsdPerKg) : null,
-        operationCount: Number(row.operationCount)
-      }))
-      .sort((left, right) => left.fecha.localeCompare(right.fecha));
-
-    return {
-      productoKey: normalizedProductoKey,
-      points
-    };
-  }
-
-  private async loadTopProducts(limit: number): Promise<SunatTopExportProduct[]> {
-    const safeLimit = Math.max(1, Math.min(limit, 20));
-
-    const topProductRows = await this.queryExecutor.execute<SunatTopProductRow>(`
-      SELECT
-        productoKey,
-        productoNombre,
-        categoriaProducto,
-        totalUsd,
-        totalNetWeightKg,
-        averageUsdPerKg,
-        operationCount
-      FROM sunat_top_products_cache
-      ORDER BY totalUsd DESC
-      LIMIT ${safeLimit}
-    `);
-
-    return topProductRows.map((row) => ({
-      productoKey: row.productoKey,
-      productoNombre: row.productoNombre,
-      categoriaProducto: row.categoriaProducto,
-      totalUsd: row.totalUsd !== null && row.totalUsd !== undefined ? Number(row.totalUsd) : null,
-      totalNetWeightKg:
-        row.totalNetWeightKg !== null && row.totalNetWeightKg !== undefined ? Number(row.totalNetWeightKg) : null,
-      averageUsdPerKg:
-        row.averageUsdPerKg !== null && row.averageUsdPerKg !== undefined ? Number(row.averageUsdPerKg) : null,
-      operationCount: Number(row.operationCount)
-    }));
   }
 }

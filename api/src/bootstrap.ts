@@ -1,8 +1,8 @@
-﻿import { createApp } from './app.js';
-import { createContainer } from './container.js';
-import { errorHandler } from './interfaces/http/middlewares/error-handler.middleware.js';
-import { notFoundHandler } from './interfaces/http/middlewares/not-found.middleware.js';
-import { registerRoutes } from './interfaces/http/routes/register-routes.js';
+import { createApp } from "./app.js";
+import { createContainer } from "./container.js";
+import { errorHandler } from "./interfaces/http/middlewares/error-handler.middleware.js";
+import { notFoundHandler } from "./interfaces/http/middlewares/not-found.middleware.js";
+import { registerRoutes } from "./interfaces/http/routes/register-routes.js";
 
 export function bootstrap() {
   const app = createApp();
@@ -11,12 +11,14 @@ export function bootstrap() {
   registerRoutes({
     app,
     env,
+    authController: controllers.authController,
+    farmController: controllers.farmController,
     healthController: controllers.healthController,
     dashboardController: controllers.dashboardController,
     plannerController: controllers.plannerController,
-    sisapController: controllers.sisapController,
+    showcaseController: controllers.showcaseController,
     sunatExportsController: controllers.sunatExportsController,
-    midagriController: controllers.midagriController
+    campaignController: controllers.campaignController
   });
 
   app.use(notFoundHandler);

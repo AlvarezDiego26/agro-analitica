@@ -1,15 +1,22 @@
+import type { MarketBuyersShowcaseResponse } from "../../showcase/types";
 import type { MarketOverview } from "../types";
-import { MobileMarketplaceScreen } from "./marketplace-screen.mobile";
 import { DesktopMarketplaceScreen } from "./marketplace-screen.desktop";
+import { MobileMarketplaceScreen } from "./marketplace-screen.mobile";
 
-export function MarketplaceScreen(props: Readonly<{ market: MarketOverview }>) {
+type MarketplaceScreenProps = Readonly<{
+  market: MarketOverview;
+  buyersShowcase: MarketBuyersShowcaseResponse;
+  preSelectedProduct?: string;
+}>;
+
+export function MarketplaceScreen(props: MarketplaceScreenProps) {
   return (
     <>
-      <div className="block xl:hidden">
-        <MobileMarketplaceScreen {...props} />
+      <div className="hidden md:block">
+        <DesktopMarketplaceScreen {...props} preSelectedProduct={props.preSelectedProduct} />
       </div>
-      <div className="hidden xl:block">
-        <DesktopMarketplaceScreen {...props} />
+      <div className="md:hidden">
+        <MobileMarketplaceScreen market={props.market} />
       </div>
     </>
   );

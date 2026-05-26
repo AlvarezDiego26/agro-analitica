@@ -7,8 +7,14 @@ coverage
 .env.*.local
 .vscode/
 *.tsbuildinfo
+*.log
+*.err.log
 ui/build_log*.txt
 ui/css_output*.txt
 ui/files*.txt
+ui/agro-analitica-ui@0.1.0
+ui/next
+ui/npm
+ui/taskkill
 db/duckdb/runtime/data/*.duckdb
 db/duckdb/runtime/data/*.wal

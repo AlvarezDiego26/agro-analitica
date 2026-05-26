@@ -13,6 +13,22 @@ export interface DashboardTrendPoint {
   averagePrice: number;
 }
 
+export type DashboardRange = "7d" | "30d" | "3m" | "1a";
+
+export interface DashboardMarketCard {
+  productoNombre: string;
+  latestPrice: number;
+  deltaPct: number;
+  deltaDirection: "up" | "down" | "none";
+  series: Array<{
+    fecha: string;
+    averagePrice: number;
+    totalVolumeTon: number;
+    prediction?: number;
+  }>;
+  latestDate: string;
+}
+
 export interface DashboardTopProduct {
   productoNombre: string;
   averagePrice: number | null;
@@ -28,9 +44,18 @@ export interface DashboardRecommendation {
   tone: "good" | "warn" | "neutral";
 }
 
+export interface DashboardAlert {
+  title: string;
+  message: string;
+  severity: "high" | "medium" | "low";
+}
+
 export interface DashboardOverviewResponse {
+  range: DashboardRange;
   overview: DashboardOverview;
   trend: DashboardTrendPoint[];
+  marketCards: DashboardMarketCard[];
   topProducts: DashboardTopProduct[];
   recommendation: DashboardRecommendation;
+  alerts: DashboardAlert[];
 }

@@ -1,14 +1,19 @@
 import { MobileLoginScreen } from "./login-screen.mobile";
 import { DesktopLoginScreen } from "./login-screen.desktop";
 
-export function LoginScreen() {
+type LoginScreenProps = {
+  nextHref?: string;
+  reason?: string;
+};
+
+export function LoginScreen({ nextHref, reason }: Readonly<LoginScreenProps>) {
   return (
     <>
       <div className="block lg:hidden">
-        <MobileLoginScreen />
+        <MobileLoginScreen nextHref={nextHref} reason={reason} />
       </div>
       <div className="hidden lg:block">
-        <DesktopLoginScreen />
+        <DesktopLoginScreen nextHref={nextHref} reason={reason} />
       </div>
     </>
   );

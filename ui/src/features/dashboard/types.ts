@@ -1,10 +1,11 @@
-export type DashboardAlert = {
+type DashboardAlert = {
   title: string;
   message: string;
   severity: "high" | "medium" | "low";
 };
 
 export type DashboardOverviewResponse = {
+  range: "7d" | "30d" | "3m" | "1a";
   overview: {
     latestDate: string;
     analyzedRows: number;
@@ -18,6 +19,19 @@ export type DashboardOverviewResponse = {
     fecha: string;
     averagePrice: number;
   }>;
+  marketCards: Array<{
+    productoNombre: string;
+    latestPrice: number;
+    deltaPct: number;
+    deltaDirection: "up" | "down" | "none";
+    series: Array<{
+      fecha: string;
+      averagePrice: number;
+      totalVolumeTon: number;
+      prediction?: number;
+    }>;
+    latestDate: string;
+  }>;
   topProducts: Array<{
     productoNombre: string;
     averagePrice: number;
@@ -29,6 +43,7 @@ export type DashboardOverviewResponse = {
   recommendation: {
     title: string;
     message: string;
-    tone: "info" | "success" | "warn";
+    tone: "good" | "warn" | "neutral";
   };
+  alerts: DashboardAlert[];
 };

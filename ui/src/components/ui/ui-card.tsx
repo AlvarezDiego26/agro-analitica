@@ -6,7 +6,7 @@ type UiCardProps = Readonly<{
   children: ReactNode;
   tone?: "default" | "alert" | "success";
   className?: string;
-  onClick?: () => void;
+  onClick?: (e?: any) => void;
 }>;
 
 export function UiCard({ children, tone = "default", className = "", onClick }: UiCardProps) {
