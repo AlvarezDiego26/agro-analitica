@@ -14,6 +14,17 @@ Este runtime usa dos archivos DuckDB distintos:
 
 ## Scripts
 
+### Hacer refresh completo desde Docker Compose
+
+Este comando reconstruye `agro_build.duckdb` desde Delta/MinIO y publica
+`agro_api_snapshot.duckdb` para que lo lea la API:
+
+```bash
+docker compose --profile jobs run --rm duckdb-refresh
+```
+
+La API debe apuntar a `agro_api_snapshot.duckdb` en modo `READ_ONLY`.
+
 ### Construir cache
 
 ```powershell

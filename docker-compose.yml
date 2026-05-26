@@ -2,12 +2,29 @@ services:
   duckdb:
     image: duckdb/duckdb:latest
     container_name: agro-analitica-duckdb
+    profiles:
+      - tools
     env_file:
       - ./db/duckdb/runtime/.env
     stdin_open: true
     tty: true
     working_dir: /data
-    command: ["/duckdb", "/data/agro_build.duckdb"]
+    entrypoint: ["sh", "-c"]
+    command: ["sleep infinity"]
+    volumes:
+      - ./db/duckdb/runtime/data:/data
+      - ./db/duckdb/runtime/scripts:/scripts
+      - ./db/duckdb/runtime/sql:/sql
+      - ./db/duckdb/validation:/validation
+
+  duckdb-refresh:
+    image: duckdb/duckdb:latest
+    profiles:
+      - jobs
+    env_file:
+      - ./db/duckdb/runtime/.env
+    working_dir: /data
+    entrypoint: ["sh", "/scripts/refresh-api-snapshot.sh"]
     volumes:
       - ./db/duckdb/runtime/data:/data
       - ./db/duckdb/runtime/scripts:/scripts
@@ -26,7 +43,7 @@ services:
       API_PREFIX: /api
       DUCKDB_DATABASE_PATH: /app/db/duckdb/runtime/data/agro_api_snapshot.duckdb
       DUCKDB_INIT_SQL_PATH: /app/db/duckdb/runtime/sql/52-build-api-cache-dummy.sql
-      DUCKDB_ACCESS_MODE: READ_WRITE
+      DUCKDB_ACCESS_MODE: READ_ONLY
     ports:
       - "3001:3001"
     volumes:
@@ -37,8 +54,6 @@ services:
       timeout: 5s
       retries: 6
       start_period: 15s
-    depends_on:
-      - duckdb
 
   ui:
     build:

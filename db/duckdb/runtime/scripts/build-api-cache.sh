@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+BUILD_DB="${DUCKDB_BUILD_DATABASE_PATH:-/data/agro_build.duckdb}"
+BUILD_SQL="${DUCKDB_BUILD_SQL_PATH:-/sql/51-build-api-cache-fast.sql}"
+
+echo "[DuckDB] Construyendo cache en ${BUILD_DB} desde ${BUILD_SQL}..."
+/duckdb "${BUILD_DB}" -init "${BUILD_SQL}" -c "SHOW TABLES;"
+
+if [ ! -f "${BUILD_DB}" ]; then
+  echo "[DuckDB] No se genero el archivo ${BUILD_DB}" >&2
+  exit 1
+fi
+
+echo "[DuckDB] Cache construido correctamente en ${BUILD_DB}"
